@@ -34,7 +34,7 @@ block content %}
 
       <button class="btn btn-primary">Search</button>
 
-      {% if q %}
+      {% if q or start_date or end_date %}
       <a href="/audit_logs" class="btn btn-outline">Clear</a>
       {% endif %}
     </form>
@@ -94,8 +94,15 @@ block content %}
 
     <!-- PAGINATION -->
     <div class="flex justify-center mt-6 gap-2">
-      {% if page > 1 %}
-      <a href="/audit_logs?page={{ page - 1 }}&q={{ q }}" class="btn btn-sm">
+      {% set query_params = [] %} {% if q %} {% set query_params = query_params
+      + ["q=" ~ q] %} {% endif %} {% if start_date %} {% set query_params =
+      query_params + ["start_date=" ~ start_date] %} {% endif %} {% if end_date
+      %} {% set query_params = query_params + ["end_date=" ~ end_date] %} {%
+      endif %} {% set query_string = query_params | join("&") %} {% if page > 1
+      %}
+      <a
+        href="/audit_logs?page={{ page - 1 }}{% if query_string %}&{{ query_string }}{% endif %}"
+        class="btn btn-sm">
         Prev
       </a>
       {% endif %}
@@ -105,7 +112,9 @@ block content %}
       </span>
 
       {% if page < total_pages %}
-      <a href="/audit_logs?page={{ page + 1 }}&q={{ q }}" class="btn btn-sm">
+      <a
+        href="/audit_logs?page={{ page + 1 }}{% if query_string %}&{{ query_string }}{% endif %}"
+        class="btn btn-sm">
         Next
       </a>
       {% endif %}

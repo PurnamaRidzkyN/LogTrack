@@ -12,6 +12,11 @@ from app.utils.time_helper import now_wib
 from app.database.connection import get_db_connection
 from app.controllers.audit_logs import create_audit_log
 from werkzeug.security import generate_password_hash
+from app.utils.validators import validate_email, validate_string, validate_role
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 
 def user_index():
@@ -27,8 +32,14 @@ def user_index():
         elif role == 1:
             account = "User"
 
-        q = request.args.get("q", "")
+        q = request.args.get("q", "").strip()
         page = request.args.get("page", 1, type=int)
+
+        # =========================
+        # VALIDATION: PAGE NUMBER
+        # =========================
+        if page < 1:
+            page = 1
 
         limit = 10
         offset = (page - 1) * limit
@@ -100,7 +111,9 @@ def user_index():
         )
 
     except Exception as e:
-        print("ERROR USER INDEX:", e)
+        logger.error(f"USER INDEX ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        flash("An error occurred while loading users", "error")
         return render_template("users/index.html", users=[])
 
     finally:
@@ -114,10 +127,40 @@ def user_store():
     conn = None
 
     try:
-        name = request.form.get("name")
-        email = request.form.get("email")
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        role = request.form.get("role", "").strip()
+
+        # =========================
+        # VALIDATION: REQUIRED FIELDS
+        # =========================
+        if not name or not email or not role:
+            flash("All fields are required", "error")
+            return redirect("/users/create")
+
+        # =========================
+        # VALIDATION: NAME LENGTH
+        # =========================
+        if not validate_string(name, min_length=2, max_length=255):
+            flash("Name must be between 2 and 255 characters", "error")
+            return redirect("/users/create")
+
+        # =========================
+        # VALIDATION: EMAIL FORMAT
+        # =========================
+        if not validate_email(email):
+            flash("Invalid email format", "error")
+            return redirect("/users/create")
+
+        # =========================
+        # VALIDATION: ROLE
+        # =========================
+        if not validate_role(role):
+            flash("Invalid role selected", "error")
+            return redirect("/users/create")
+
+        role = int(role)
         password = generate_password_hash(email)
-        role = request.form.get("role")  
 
         conn = get_db_connection()
 
@@ -144,20 +187,19 @@ def user_store():
 
         conn.commit()
 
-        flash("User created", "success")
+        flash("User created successfully", "success")
         
     except sqlite3.IntegrityError as e:
-
-        print("ERROR USER STORE:", e)
-
+        logger.error(f"USER STORE INTEGRITY ERROR: {str(e)}")
         if "email" in str(e).lower():
             flash("Email already exists", "error")
         else:
             flash("Data constraint violation", "error")
 
     except Exception as e:
-        print("ERROR USER STORE:", e)
-        flash("Failed create user", "error")
+        logger.error(f"USER STORE ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        flash("Failed to create user. Please try again.", "error")
 
     finally:
         if conn:
@@ -170,6 +212,13 @@ def user_delete(id):
     conn = None
 
     try:
+        # =========================
+        # VALIDATION: ID FORMAT
+        # =========================
+        if not validate_string(str(id), min_length=1, max_length=10, allow_empty=False):
+            flash("Invalid user ID", "error")
+            return redirect("/users")
+
         conn = get_db_connection()
 
         current_user_id = session.get("user_id")
@@ -235,6 +284,11 @@ def user_delete(id):
         conn.commit()
 
         flash("User deleted successfully", "success")
+
+    except Exception as e:
+        logger.error(f"USER DELETE ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        flash("An error occurred while deleting user", "error")
 
     finally:
         if conn:
@@ -318,6 +372,16 @@ def user_force_delete(id):
         )
 
         conn.commit()
+        
+    except sqlite3.IntegrityError as e:
+        logger.error(f"PERMANENT DELETE ACCOUNT IntegrityError: {e}")
+        logger.error(traceback.format_exc())
+        flash("Cannot permanently delete asset because it is referenced by other records.", "error")
+        
+    except Exception as e:
+        logger.error(f"ERROR PERMANENT DELETE: {e}")
+        logger.error(traceback.format_exc())
+        flash("Failed to permanently delete asset", "error")
 
     finally:
         if conn:
@@ -368,7 +432,8 @@ def user_reset_password(id):
         flash("Password successfully reset", "success")
 
     except Exception as e:
-        print("ERROR RESET PASSWORD:", e)
+        logger.error(f"ERROR RESET PASSWORD: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to reset password", "error")
 
     finally:

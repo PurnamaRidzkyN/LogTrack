@@ -126,6 +126,25 @@
           {% endif %} {% endwith %}
         </div>
         <main class="p-6">{% block content %} {% endblock %}</main>
+
+        <footer
+          class="border-t border-base-300 bg-base-100 px-6 py-4 text-sm text-gray-500">
+          <div
+            class="flex flex-col gap-1 md:flex-row md:justify-between md:items-center">
+            <div>
+              Created by
+              <a
+                href="https://github.com/PurnamaRidzkyN"
+                class="link link-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+                >PurnamaRidzkyN</a
+              >
+            </div>
+            <div>LogTrack &mdash; Incident and audit logging system</div>
+          </div>
+        </footer>
+
         <script>
           setTimeout(() => {
             const alerts = document.querySelectorAll(".alert");

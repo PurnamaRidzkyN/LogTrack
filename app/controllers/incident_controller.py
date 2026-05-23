@@ -14,6 +14,13 @@ from flask import request, session, flash, redirect, jsonify
 
 from app.utils.time_helper import now_wib
 from app.controllers.audit_logs import create_audit_log
+from app.utils.validators import validate_string, validate_severity, validate_status, validate_date, validate_integer
+from app.utils.error_handler import handle_db_error
+import logging
+import traceback
+import sqlite3
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -77,10 +84,11 @@ def incident_index():
                 OR a.asset_name LIKE ?
                 OR c.category_name LIKE ?
                 OR u.name LIKE ?
+                OR u.email LIKE ?
                 OR h.name LIKE ?
             )
             """
-            params.extend([f"%{q}%"] * 8)
+            params.extend([f"%{q}%"] * 9)
 
         # =========================
         # DATE FILTER
@@ -144,7 +152,8 @@ def incident_index():
         )
 
     except Exception as e:
-        print("ERROR INCIDENT INDEX:", e)
+        logger.error(f"INCIDENT INDEX ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         flash("Failed to retrieve incidents", "error")
 
         return render_template(
@@ -193,7 +202,8 @@ def incident_edit(id):
         )
 
     except Exception as e:
-        print("ERROR INCIDENT EDIT:", e)
+        logger.error(f"ERROR INCIDENT EDIT: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to open incident edit", "error")
         return redirect("/incidents")
 
@@ -289,7 +299,8 @@ def incident_update(id):
         flash("Incident successfully updated", "success")
 
     except Exception as e:
-        print("ERROR INCIDENT UPDATE:", e)
+        logger.error(f"INCIDENT UPDATE ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
         flash("Failed to update incident", "error")
 
@@ -355,10 +366,30 @@ def incident_store():
     try:
         user_id = session.get("user_id")
 
-        asset_id = request.form.get("asset_id")
-        incident_category_id = request.form.get("incident_category_id")
-        print("CATEGORY ID:", incident_category_id)
-        detail = request.form.get("detail")
+        asset_id = request.form.get("asset_id", "").strip()
+        incident_category_id = request.form.get("incident_category_id", "").strip()
+        detail = request.form.get("detail", "").strip()
+
+        # =========================
+        # VALIDATION: REQUIRED FIELDS
+        # =========================
+        if not asset_id or not incident_category_id:
+            flash("Asset and category are required", "error")
+            return redirect("/incidents/create")
+
+        # =========================
+        # VALIDATION: DETAIL LENGTH
+        # =========================
+        if not validate_string(detail, min_length=1, max_length=1000):
+            flash("Incident detail must be between 1 and 1000 characters", "error")
+            return redirect("/incidents/create")
+
+        # =========================
+        # VALIDATION: ASSET ID & CATEGORY ID FORMAT
+        # =========================
+        if not validate_integer(asset_id, min_val=1) or not validate_integer(incident_category_id, min_val=1):
+            flash("Invalid asset or category ID", "error")
+            return redirect("/incidents/create")
 
         conn = get_db_connection()
 
@@ -415,8 +446,9 @@ def incident_store():
         flash("Incident successfully reported", "success")
 
     except Exception as e:
-        print("ERROR STORE INCIDENT:", e)
-        flash("Failed to create incident", "error")
+        logger.error(f"INCIDENT STORE ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        flash("Failed to create incident. Please try again.", "error")
 
     finally:
         if conn:
@@ -517,7 +549,8 @@ def incident_delete(id):
         flash("Incident successfully deleted", "warning")
 
     except Exception as e:
-        print("ERROR SOFT DELETE INCIDENT:", e)
+        logger.error(f"ERROR SOFT DELETE INCIDENT: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to delete incident", "error")
 
     finally:
@@ -570,7 +603,8 @@ def incident_restore(id):
         flash("Incident successfully restored", "success")
 
     except Exception as e:
-        print("ERROR RESTORE INCIDENT:", e)
+        logger.error(f"ERROR RESTORE INCIDENT: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to restore incident", "error")
 
     finally:
@@ -616,15 +650,19 @@ def incident_delete_permanent(id):
             id,
             f"Permanent delete incident: {old_data}"
         )
-
         conn.commit()
 
-        flash("Incident permanently deleted", "error")
+        flash("Incident permanently deleted", "success")
+
+    except sqlite3.IntegrityError as e:
+        logger.error(f"PERMANENT DELETE IntegrityError: {e}")
+        logger.error(traceback.format_exc())
+        flash("Cannot permanently delete incident because it is referenced by other records.", "error")
 
     except Exception as e:
-        print("ERROR PERMANENT DELETE INCIDENT:", e)
+        logger.error(f"ERROR PERMANENT DELETE INCIDENT: {str(e)}")
+        logger.error(traceback.format_exc())
         flash("Failed to permanently delete incident", "error")
-
     finally:
         if conn:
             conn.close()

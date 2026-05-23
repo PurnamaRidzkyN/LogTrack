@@ -8,9 +8,11 @@ block content %}
   </div>
 
   <div class="flex gap-2">
+    {% if role in [0, 1] %}
     <a href="/export-incidents-csv" class="btn btn-outline btn-primary">
       Export CSV
     </a>
+    {% endif %}
 
     <a href="/incidents/create" class="btn btn-primary"> + Add Incident </a>
   </div>
@@ -24,7 +26,7 @@ block content %}
           type="text"
           name="q"
           value="{{ q }}"
-          placeholder="Search asset..."
+          placeholder="Search incidents..."
           class="input input-bordered w-64" />
         <input
           type="date"
@@ -164,7 +166,6 @@ block content %}
         </a>
         {% endif %}
       </div>
-      
     </div>
   </div>
 </div>

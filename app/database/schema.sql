@@ -112,3 +112,15 @@ CREATE TABLE audit_logs (
     detail TEXT,
     created_at DATETIME
 );
+
+-- ==========================================
+-- INDEXES (Performance Optimization)
+-- ==========================================
+
+CREATE INDEX idx_incidents_severity ON incidents(severity_level);
+CREATE INDEX idx_incidents_status ON incidents(status);
+CREATE INDEX idx_incidents_created_at ON incidents(created_at);
+CREATE INDEX idx_incidents_user_id ON incidents(user_id);
+CREATE INDEX idx_incidents_asset_id ON incidents(asset_id);
+CREATE INDEX idx_assets_status ON assets(status);
+CREATE INDEX idx_users_email ON users(email);

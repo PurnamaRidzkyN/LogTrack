@@ -13,6 +13,12 @@ from app.utils.time_helper import now_wib
 from app.database.connection import get_db_connection
 from app.controllers.audit_logs import create_audit_log
 import sqlite3
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+from app.utils.validators import validate_string, validate_asset_status
+from app.utils.error_handler import handle_db_error
 
 # ==========================================
 # INDEX
@@ -47,8 +53,8 @@ def asset_index():
         # SEARCH
         # =========================
         if q:
-            base_query += " AND (asset_code LIKE ? OR asset_name LIKE ?)"
-            params.extend([f"%{q}%", f"%{q}%"])
+            base_query += " AND (asset_code LIKE ? OR asset_name LIKE ? OR status LIKE ?)"
+            params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
 
         # =========================
         # COUNT
@@ -83,8 +89,8 @@ def asset_index():
         )
 
     except Exception as e:
-        print("ERROR ASSET INDEX:", e)
-
+        logger.error(f"ERROR ASSET INDEX: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to retrieve assets", "error")
 
         return render_template(
@@ -116,9 +122,22 @@ def asset_store():
     conn = None
 
     try:
-        asset_code = request.form.get("asset_code")
-        asset_name = request.form.get("asset_name")
-        status = request.form.get("status")
+        asset_code = request.form.get("asset_code","").strip()
+        asset_name = request.form.get("asset_name","").strip()
+        status = request.form.get("status","").strip()
+
+        # Validation
+        if not validate_string(asset_code, min_length=1, max_length=100):
+            flash("Asset code is required (1-100 chars)", "error")
+            return redirect("/assets/create")
+
+        if not validate_string(asset_name, min_length=1, max_length=255):
+            flash("Asset name is required (1-255 chars)", "error")
+            return redirect("/assets/create")
+
+        if not validate_asset_status(status):
+            flash("Invalid asset status selected", "error")
+            return redirect("/assets/create")
 
         conn = get_db_connection()
         
@@ -152,17 +171,14 @@ def asset_store():
 
         flash("Asset successfully added", "success")
     except sqlite3.IntegrityError as e:
-
-        print("ERROR STORE ASSET:", e)
-
+        logger.error(f"ERROR STORE ASSET: {e}")
         if "asset_code" in str(e).lower():
             flash("Asset code already exists", "error")
         else:
             flash("Data constraint violation", "error")
-            
     except Exception as e:
-        print("ERROR STORE ASSET:", e)
-        flash("Failed to add asset", "error")
+        resp = handle_db_error(e, user_id=session.get("user_id"), entity_type="asset")
+        flash(resp.get('error'), 'error')
 
     finally:
         if conn:
@@ -194,7 +210,8 @@ def asset_edit(id):
         return render_template("assets/edit.html", asset=asset)
 
     except Exception as e:
-        print("ERROR EDIT ASSET:", e)
+        logger.error(f"ERROR EDIT ASSET: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to open asset data", "error")
         return redirect("/assets")
 
@@ -210,9 +227,22 @@ def asset_update(id):
     conn = None
 
     try:
-        asset_code = request.form.get("asset_code")
-        asset_name = request.form.get("asset_name")
-        status = request.form.get("status")
+        asset_code = request.form.get("asset_code","").strip()
+        asset_name = request.form.get("asset_name","").strip()
+        status = request.form.get("status","").strip()
+
+        # Validation
+        if not validate_string(asset_code, min_length=1, max_length=100):
+            flash("Asset code is required (1-100 chars)", "error")
+            return redirect(f"/assets/{id}/edit")
+
+        if not validate_string(asset_name, min_length=1, max_length=255):
+            flash("Asset name is required (1-255 chars)", "error")
+            return redirect(f"/assets/{id}/edit")
+
+        if not validate_asset_status(status):
+            flash("Invalid asset status selected", "error")
+            return redirect(f"/assets/{id}/edit")
 
         conn = get_db_connection()
         old_data = conn.execute("""
@@ -262,17 +292,14 @@ def asset_update(id):
         flash("Asset successfully updated", "success")
 
     except sqlite3.IntegrityError as e:
-
-        print("ERROR UPDATE ASSET:", e)
-
+        logger.error(f"ERROR UPDATE ASSET: {e}")
         if "asset_code" in str(e).lower():
             flash("Asset code already exists", "error")
         else:
             flash("Data constraint violation", "error")
-            
     except Exception as e:
-        print("ERROR UPDATE ASSET:", e)
-        flash("Failed to update asset", "error")
+        resp = handle_db_error(e, user_id=session.get("user_id"), entity_type="asset")
+        flash(resp.get('error'), 'error')
 
     finally:
         if conn:
@@ -320,7 +347,8 @@ def asset_delete(id):
         
 
     except Exception as e:
-        print("ERROR SOFT DELETE:", e)
+        logger.error(f"ERROR SOFT DELETE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to delete asset", "error")
 
     finally:
@@ -371,7 +399,8 @@ def asset_restore(id):
         flash("Asset successfully restored", "success")
 
     except Exception as e:
-        print("ERROR RESTORE:", e)
+        logger.error(f"ERROR RESTORE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to restore asset", "error")
 
     finally:
@@ -417,10 +446,16 @@ def asset_delete_permanent(id):
 
         conn.commit()
 
-        flash("Asset permanently deleted", "error")
+        flash("Asset permanently deleted", "success")
+
+    except sqlite3.IntegrityError as e:
+        logger.error(f"PERMANENT DELETE ASSET IntegrityError: {e}")
+        logger.error(traceback.format_exc())
+        flash("Cannot permanently delete asset because it is referenced by other records.", "error")
 
     except Exception as e:
-        print("ERROR PERMANENT DELETE:", e)
+        logger.error(f"ERROR PERMANENT DELETE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to permanently delete asset", "error")
 
     finally:

@@ -10,6 +10,12 @@ from flask import session
 from app.database.connection import get_db_connection
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.controllers.audit_logs import create_audit_log
+from app.utils.validators import validate_email, validate_password, validate_string
+from app.utils.error_handler import handle_db_error, handle_validation_error
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 
 # ==========================================
@@ -32,14 +38,34 @@ def login_post():
     conn = None
 
     try:
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
 
-        # Validasi input
+        # =========================
+        # VALIDATION: EMPTY CHECK
+        # =========================
         if not email or not password:
             return render_template(
                 "auth/login.html",
                 error="Email and password are required"
+            )
+
+        # =========================
+        # VALIDATION: EMAIL FORMAT
+        # =========================
+        if not validate_email(email):
+            return render_template(
+                "auth/login.html",
+                error="Invalid email format"
+            )
+
+        # =========================
+        # VALIDATION: PASSWORD LENGTH
+        # =========================
+        if not validate_password(password):
+            return render_template(
+                "auth/login.html",
+                error="Invalid password"
             )
 
         conn = get_db_connection()
@@ -74,18 +100,19 @@ def login_post():
             entity_id=user["id"],
             detail=f"User {user['name']} logged in"
         )
-        
+        print(user)
         if user["role"] == 2:
             return redirect(url_for("incident_index"))
         
         return redirect(url_for("dashboard"))
 
     except Exception as e:
-        print("ERROR LOGIN:", str(e))
+        logger.error(f"LOGIN ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
         return render_template(
             "auth/login.html",
-            error="A system error occurred"
+            error="A system error occurred. Please try again."
         )
 
     finally:
@@ -103,9 +130,9 @@ def change_password_update():
 
         user_id = session.get("user_id")
 
-        old_password = request.form.get("old_password")
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
+        old_password = request.form.get("old_password", "").strip()
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
 
         # =========================
         # VALIDATION: EMPTY CHECK
@@ -115,10 +142,24 @@ def change_password_update():
             return redirect("/change-password")
 
         # =========================
+        # VALIDATION: PASSWORD LENGTH & STRENGTH
+        # =========================
+        if not validate_password(old_password) or not validate_password(new_password):
+            flash("Password must be at least 6 characters", "error")
+            return redirect("/change-password")
+
+        # =========================
         # VALIDATION: CONFIRM PASSWORD
         # =========================
         if new_password != confirm_password:
             flash("New password and confirmation do not match", "error")
+            return redirect("/change-password")
+
+        # =========================
+        # VALIDATION: SAME PASSWORD
+        # =========================
+        if old_password == new_password:
+            flash("New password must be different from old password", "error")
             return redirect("/change-password")
 
         # =========================
@@ -167,7 +208,8 @@ def change_password_update():
         return redirect("/dashboard")
 
     except Exception as e:
-        print("CHANGE PASSWORD ERROR:", e)
+        logger.error(f"CHANGE PASSWORD ERROR: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         flash("An unexpected error occurred. Please try again later.", "error")
         return redirect("/change-password")
 

@@ -44,21 +44,20 @@ def audit_log_index():
         if q:
             base_query += """
                 AND (
-                    u.name LIKE ?
-                    OR a.action_type LIKE ?
+                    a.action_type LIKE ?
                     OR a.entity_type LIKE ?
                     OR a.detail LIKE ?
                 )
             """
 
-            params.extend([f"%{q}%"] * 4)
+            params.extend([f"%{q}%"] * 3)
             
         if start_date:
-            base_query += " AND DATE(i.created_at) >= DATE(?)"
+            base_query += " AND DATE(a.created_at) >= DATE(?)"
             params.append(start_date)
 
         if end_date:
-            base_query += " AND DATE(i.created_at) <= DATE(?)"
+            base_query += " AND DATE(a.created_at) <= DATE(?)"
             params.append(end_date)
 
         # =========================

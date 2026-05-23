@@ -12,6 +12,13 @@ from flask import (
 from app.controllers.audit_logs import create_audit_log
 from app.database.connection import get_db_connection
 from app.utils.time_helper import now_wib
+import sqlite3
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+from app.utils.validators import validate_string, validate_severity
+from app.utils.error_handler import handle_db_error
 
 
 # ==========================================
@@ -71,8 +78,8 @@ def incident_category_index():
         )
 
     except Exception as e:
-        print("ERROR INCIDENT CATEGORY INDEX:", e)
-
+        logger.error(f"ERROR INCIDENT CATEGORY INDEX: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to retrieve incident categories", "error")
 
         return render_template(
@@ -104,8 +111,17 @@ def incident_category_store():
     conn = None
 
     try:
-        category_name = request.form.get("category_name")
-        default_severity = request.form.get("default_severity")
+        category_name = request.form.get("category_name", "").strip()
+        default_severity = request.form.get("default_severity", "").strip()
+
+        # Validation
+        if not validate_string(category_name, min_length=1, max_length=255):
+            flash("Category name is required (1-255 chars)", "error")
+            return redirect("/incident_categories/create")
+
+        if not validate_severity(default_severity):
+            flash("Invalid default severity", "error")
+            return redirect("/incident_categories/create")
 
         conn = get_db_connection()
 
@@ -131,9 +147,12 @@ def incident_category_store():
 
         flash("Incident Category successfully added", "success")
 
+    except sqlite3.IntegrityError as e:
+        logger.error(f"INCIDENT CATEGORY STORE IntegrityError: {e}")
+        flash("Data constraint violation", "error")
     except Exception as e:
-        print("ERROR STORE INCIDENT CATEGORY:", e)
-        flash("Failed to add incident category", "error")
+        resp = handle_db_error(e, user_id=session.get("user_id"), entity_type="incident_category")
+        flash(resp.get('error'), 'error')
 
     finally:
         if conn:
@@ -165,7 +184,8 @@ def incident_category_edit(id):
         return render_template("incident_categories/edit.html", incident_category=incident_category)
 
     except Exception as e:
-        print("ERROR EDIT INCIDENT CATEGORY:", e)
+        logger.error(f"ERROR EDIT INCIDENT CATEGORY: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to open incident category data", "error")
         return redirect("/incident_categories")
 
@@ -181,8 +201,17 @@ def incident_category_update(id):
     conn = None
 
     try:
-        category_name = request.form.get("category_name")
-        default_severity = request.form.get("default_severity")
+        category_name = request.form.get("category_name", "").strip()
+        default_severity = request.form.get("default_severity", "").strip()
+
+        # Validation
+        if not validate_string(category_name, min_length=1, max_length=255):
+            flash("Category name is required (1-255 chars)", "error")
+            return redirect(f"/incident_categories/{id}/edit")
+
+        if not validate_severity(default_severity):
+            flash("Invalid default severity", "error")
+            return redirect(f"/incident_categories/{id}/edit")
 
         conn = get_db_connection()
 
@@ -222,9 +251,12 @@ def incident_category_update(id):
 
         flash("Incident Category successfully updated", "success")
 
+    except sqlite3.IntegrityError as e:
+        logger.error(f"INCIDENT CATEGORY UPDATE IntegrityError: {e}")
+        flash("Data constraint violation", "error")
     except Exception as e:
-        print("ERROR UPDATE INCIDENT CATEGORY:", e)
-        flash("Failed to update incident category", "error")
+        resp = handle_db_error(e, user_id=session.get("user_id"), entity_type="incident_category")
+        flash(resp.get('error'), 'error')
 
     finally:
         if conn:
@@ -270,7 +302,8 @@ def incident_category_delete(id):
         flash("Incident Category successfully deleted", "warning")
 
     except Exception as e:
-        print("ERROR SOFT DELETE:", e)
+        logger.error(f"ERROR SOFT DELETE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to delete incident category", "error")
 
     finally:
@@ -322,7 +355,8 @@ def incident_category_restore(id):
         flash("Incident Category successfully restored", "success")
 
     except Exception as e:
-        print("ERROR RESTORE:", e)
+        logger.error(f"ERROR RESTORE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to restore incident category", "error")
 
     finally:
@@ -366,12 +400,19 @@ def incident_category_delete_permanent(id):
             id,
             f"Permanent delete category: {old_name}")
 
+
         conn.commit()
 
-        flash("Incident Category permanently deleted", "error")
+        flash("Incident Category permanently deleted", "success")
+
+    except sqlite3.IntegrityError as e:
+        logger.error(f"PERMANENT DELETE CATEGORY IntegrityError: {e}")
+        logger.error(traceback.format_exc())
+        flash("Cannot permanently delete incident category because it is referenced by other records.", "error")
 
     except Exception as e:
-        print("ERROR PERMANENT DELETE:", e)
+        logger.error(f"ERROR PERMANENT DELETE: {e}")
+        logger.error(traceback.format_exc())
         flash("Failed to permanently delete incident category", "error")
 
     finally:

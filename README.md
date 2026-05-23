@@ -1,78 +1,134 @@
-# AuditFlow (Greenfield)
+# LogTrack (Greenfield)
 
-A simple web application for tracking incidents, assets, categories, and audit trails.
+LogTrack is a Flask-based incident management and audit trail application built as an MVP for manufacturing and operational incident tracking. It implements a 5-tier Severity Matrix (based on IPQI/ITSM standards) to prioritize catastrophic failures over minor glitches.
 
-**Main features**
+It supports incident tracking, asset management, incident categories, user roles, audit logging, and dashboard prioritization for urgent issues.
 
-- User, asset, incident category, and incident management
-- Audit logs for CRUD actions
-- Seeder to populate example data (including 30 days of incidents)
+## Key Features
 
-**Requirements**
+- Incident CRUD with severity classification and status tracking
+- Asset CRUD with status information and soft-delete support
+- Incident category CRUD with default severity mapping
+- User CRUD with role-based rules and soft-delete handling
+- Audit log tracking for create/update/delete actions
+- Search, date filtering, and export CSV for incidents
+- Dashboard KPIs and emergency highlighting for urgent incidents
+- Timezone-aware timestamps using Asia/Jakarta (WIB)
 
-- Python 3.8+
-- Packages listed in `requirements.txt`
+## MVP Fit
 
-## Setup (Windows)
+This project is designed around `Opsi C: Audit & Incident Logs` and includes:
 
-1. Create and activate a virtual environment:
+- Functional data management for all entities
+- Audit trail for user activity and changes
+- Attention logic for incident urgency and severity
+- Raw SQL-based database layer with no ORM
+- Soft-delete behavior on key entities
 
-```
+## Requirements
+
+- Python 3.8 or newer
+- `pip` package manager
+- SQLite (bundled with Python)
+
+## Setup
+
+### 1. Create a virtual environment
+
+Windows:
+
+```powershell
 python -m venv venv
 venv\Scripts\activate
 ```
 
-2. Install dependencies:
+Linux / macOS:
 
+```bash
+python3 -m venv venv
+source venv/bin/activate
 ```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-3. (Optional) Create a `.env` file in the project root if you want custom configuration:
+### 3. Configure environment variables
 
+Copy `.env.example` to `.env` and update values if needed:
+
+```bash
+copy .env.example .env
 ```
+
+Example variables:
+
+```ini
 SECRET_KEY=your_secret_key_here
-DATABASE_PATH=instance/auditflow.db
+DATABASE_PATH=instance/logtrack.db
 DEBUG=true
 ```
 
-4. Reset and seed the database (this removes the old DB):
+### 4. Seed the database
+
+```bash
+python seed.py fresh
 
 ```
-python -m app.database.seed fresh
-```
 
-The seeder will:
+This command:
 
-- Create the schema in `instance/auditflow.db` if it does not exist
-- Insert users, assets, and incident categories
-- Generate incident records for the last 30 days (1–3 incidents per day) in the Asia/Jakarta timezone
-
-## Running the application
+* creates the SQLite schema
+* inserts sample users, 15 manufacturing assets, and 15 incident categories
+* generates **90 days (3 months)** of incident data (**2–6 incidents per day**) with weighted SEV-1 to SEV-5 distribution.
 
 ```
+
+## Run the application
+
+```bash
 python run.py
 ```
 
-Or use Flask run:
+Then open:
 
+```text
+http://127.0.0.1:5000
 ```
-set FLASK_APP=run.py
-flask run
-```
 
-The default server will run at `http://127.0.0.1:5000`.
+## Project structure
 
-## Important structure
+- `app/` — source code
+  - `controllers/` — request handlers and business logic
+  - `routes/` — URL route registration
+  - `templates/` — Jinja2 views
+  - `utils/` — helpers, validators, and error handling
+  - `database/` — schema and seed scripts
+- `instance/` — runtime SQLite database file
+- `requirements.txt` — Python dependencies
+- `run.py` — application entrypoint
 
-- `app/` : application source code (controllers, templates, utils)
-- `app/database/schema.sql` : SQLite schema definition
-- `app/database/seed.py` : script to seed initial data
-- `instance/auditflow.db` : SQLite database file created by the seeder
+## Deployment notes
 
-## Notes
+This application is suitable for an internal VM staging environment with limited resources.
 
-- The `created_at` and `updated_at` timestamps use Asia/Jakarta timezone via `app/utils/time_helper.py`.
-- To change seeder behavior (for example, incidents per day), update `app/database/seed.py`.
+Recommended target platform:
 
-If you want, I can also pin package versions in `requirements.txt` or add a `.env.example` file.
+- Ubuntu 22.04 LTS
+- 1 CPU core, 2 GB RAM
+
+For production readiness, use a phased rollout model:
+
+1. deploy to staging
+2. validate functionality
+3. migrate to production
+
+## Notes for production
+
+- The current design uses raw SQL and SQLite for simplicity.
+- For higher availability and scalability, consider moving to a dedicated SQL database server.
+- Keep `DEBUG=false` in production.
+
+
