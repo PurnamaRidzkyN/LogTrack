@@ -1,0 +1,95 @@
+{% extends "layouts/app.html" %} {% block title %} Edit Incident Category {%
+endblock %} {% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Edit Incident Category</h1>
+      <p class="text-gray-500">Edit incident category</p>
+    </div>
+
+    <a href="/incident_categories" class="btn btn-outline btn-primary">
+      Back
+    </a>
+  </div>
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form
+        method="POST"
+        action="/incident_categories/{{ incident_category.id }}/update">
+        <!-- CATEGORY NAME -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Category Name</span>
+          </label>
+
+          <input
+            type="text"
+            name="category_name"
+            value="{{ incident_category.category_name }}"
+            class="input input-bordered"
+            required />
+        </div>
+
+        <!-- DEFAULT SEVERITY -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Default Severity</span>
+          </label>
+
+          <select name="default_severity" class="select select-bordered">
+            <option
+              value="SEV-1"
+              {%
+              if
+              incident_category.default_severity=""
+              ="SEV-1"
+              %}selected{%
+              endif
+              %}>
+              SEV-1
+            </option>
+            <option
+              value="SEV-2"
+              {%
+              if
+              incident_category.default_severity=""
+              ="SEV-2"
+              %}selected{%
+              endif
+              %}>
+              SEV-2
+            </option>
+            <option
+              value="SEV-3"
+              {%
+              if
+              incident_category.default_severity=""
+              ="SEV-3"
+              %}selected{%
+              endif
+              %}>
+              SEV-3
+            </option>
+            <option
+              value="INFO"
+              {%
+              if
+              incident_category.default_severity=""
+              ="INFO"
+              %}selected{%
+              endif
+              %}>
+              INFO
+            </option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary">Update Category</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

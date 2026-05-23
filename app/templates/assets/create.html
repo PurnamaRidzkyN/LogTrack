@@ -1,0 +1,67 @@
+<!-- ==========================================
+templates/assets/create.html
+========================================== -->
+
+{% extends "layouts/app.html" %} {% block title %} Create Asset {% endblock %}
+{% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Create Asset</h1>
+      <p class="text-gray-500">Add new asset</p>
+    </div>
+
+    <a href="/assets" class="btn btn-outline btn-primary">Back</a>
+  </div>
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="POST" action="/assets/store">
+        <!-- CODE -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Asset Code </span>
+          </label>
+
+          <input
+            type="text"
+            name="asset_code"
+            class="input input-bordered"
+            required />
+        </div>
+
+        <!-- NAME -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Asset Name </span>
+          </label>
+
+          <input
+            type="text"
+            name="asset_name"
+            class="input input-bordered"
+            required />
+        </div>
+
+        <!-- STATUS -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text"> Status </span>
+          </label>
+
+          <select name="status" class="select select-bordered">
+            <option>Operational</option>
+
+            <option>Maintenance</option>
+
+            <option>Broken</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary">Save Asset</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

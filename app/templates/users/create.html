@@ -1,0 +1,72 @@
+{% extends "layouts/app.html" %} {% block title %} Create {{account}} Account {%
+endblock %} {% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Create {{account}} Account</h1>
+      <p class="text-gray-500">Add new {{account}} account</p>
+    </div>
+
+    <a href="/users" class="btn btn-outline btn-primary">Back</a>
+  </div>
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="POST" action="/users/store">
+        <!-- ADMIN NAME -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Name</span>
+          </label>
+
+          <input
+            type="text"
+            name="name"
+            class="input input-bordered"
+            required />
+        </div>
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Email</span>
+          </label>
+
+          <input
+            type="text"
+            name="email"
+            class="input input-bordered"
+            required />
+        </div>
+
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Role</span>
+          </label>
+
+          {% if role == 0 %}
+
+          <!-- SUPER ADMIN: bisa pilih -->
+          <select name="role" class="select select-bordered w-full">
+            <option value="1">Admin</option>
+            <option value="2">User</option>
+          </select>
+
+          {% elif role == 1 %}
+
+          <!-- ADMIN: forced USER -->
+          <input type="hidden" name="role" value="2" />
+
+          <div class="p-3 bg-base-200 rounded">
+            <span class="badge badge-info">User Only</span>
+          </div>
+
+          {% endif %}
+        </div>
+
+        <button class="btn btn-primary">Save Category</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

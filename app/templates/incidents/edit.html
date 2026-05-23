@@ -1,0 +1,276 @@
+{% extends "layouts/app.html" %} {% block title %} Update Incident {% endblock
+%} {% block content %}
+
+<div class="max-w-2xl mx-auto">
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Update Incident</h1>
+            <p class="text-gray-500">Edit existing incident</p>
+        </div>
+
+        <a href="/incidents" class="btn btn-outline btn-primary">Back</a>
+    </div>
+
+    <!-- FORM -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+
+    <form
+        method="POST"
+        action="/incidents/{{ incident.id }}/update"
+    >
+
+        <!-- INCIDENT INFO -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+          <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Reported By
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.reported_by }}"
+                    readonly
+                >
+
+            </div>
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Handled By
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.handled_by_name }}"
+                    readonly
+                >
+
+            </div>
+
+            <!-- ASSET -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Asset
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.asset_name }}"
+                    readonly
+                >
+
+            </div>
+
+
+            <!-- CATEGORY -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Category
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.category_name }}"
+                    readonly
+                >
+
+            </div>
+
+
+            <!-- CREATED -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Created At
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.created_at }}"
+                    readonly
+                >
+
+            </div>
+
+
+            <!-- UPDATED -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Updated At
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    class="input input-bordered w-full bg-base-300 border-base-300 text-base-content"
+                    value="{{ incident.updated_at }}"
+                    readonly
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- DETAIL -->
+        <div class="form-control mb-6">
+
+            <label class="label">
+                <span class="label-text font-semibold">
+                    Detail
+                </span>
+            </label>
+
+            <textarea
+                class="textarea textarea-bordered bg-base-300 border-base-300 text-base-content"
+                rows="5"
+                readonly
+            >{{ incident.detail }}</textarea>
+
+        </div>
+
+
+        <!-- EDIT SECTION -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+            <!-- SEVERITY -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Severity
+                    </span>
+                </label>
+
+                <select
+                    name="severity_level"
+                    class="select select-bordered w-full"
+                    required
+                >
+
+                    <option
+                        value="SEV-1"
+                        {% if incident.severity_level == "SEV-1" %}
+                        selected
+                        {% endif %}
+                    >
+                        SEV-1
+                    </option>
+
+                    <option
+                        value="SEV-2"
+                        {% if incident.severity_level == "SEV-2" %}
+                        selected
+                        {% endif %}
+                    >
+                        SEV-2
+                    </option>
+
+                    <option
+                        value="SEV-3"
+                        {% if incident.severity_level == "SEV-3" %}
+                        selected
+                        {% endif %}
+                    >
+                        SEV-3
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- STATUS -->
+            <div>
+
+                <label class="label">
+                    <span class="label-text font-semibold">
+                        Status
+                    </span>
+                </label>
+
+                <select
+                    name="status"
+                    class="select select-bordered w-full"
+                    required
+                >
+
+                    <option
+                        value="Open"
+                        {% if incident.status == "Open" %}
+                        selected
+                        {% endif %}
+                    >
+                        Open
+                    </option>
+
+                    <option
+                        value="In Progress"
+                        {% if incident.status == "In Progress" %}
+                        selected
+                        {% endif %}
+                    >
+                        In Progress
+                    </option>
+
+                    <option
+                        value="Resolved"
+                        {% if incident.status == "Resolved" %}
+                        selected
+                        {% endif %}
+                    >
+                        Resolved
+                    </option>
+
+                    <option
+                        value="Closed"
+                        {% if incident.status == "Closed" %}
+                        selected
+                        {% endif %}
+                    >
+                        Closed
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <!-- BUTTON -->
+        <button class="btn btn-primary w-full">
+
+            Update Incident
+
+        </button>
+
+    </form>
+
+</div>
+    </div>
+</div>
+{% endblock %}

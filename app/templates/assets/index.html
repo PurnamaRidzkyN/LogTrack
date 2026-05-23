@@ -1,0 +1,182 @@
+{% extends "layouts/app.html" %} {% block title %}Assets{% endblock %} {% block
+content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-3xl font-bold">Assets</h1>
+    <p class="text-gray-500">Operational asset management</p>
+  </div>
+
+  <a href="/assets/create" class="btn btn-primary"> + Add Asset </a>
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="overflow-x-auto">
+      <form method="GET" class="flex gap-2 mb-4">
+        <input
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="Search asset..."
+          class="input input-bordered w-64" />
+
+        <button class="btn btn-primary">Search</button>
+
+        {% if q %}
+        <a href="/assets" class="btn btn-outline btn-primary"> Reset </a>
+        {% endif %}
+      </form>
+      <table class="table">
+        <!-- HEADER -->
+        <thead>
+          <tr>
+            {% if role == 0 %}
+            <th>ID</th>
+            {% endif %}
+            <th>Asset Code</th>
+            <th>Asset Name</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <!-- BODY -->
+        <tbody>
+          {% for asset in assets %}
+
+          <tr>
+            {% if role == 0 %}
+            <td>{{ asset.id }}</td>
+            {% endif %}
+            <td>{{ asset.asset_code }}</td>
+            <td>{{ asset.asset_name }}</td>
+
+            <td>
+              {% if asset.status == 'Operational' %}
+              <div class="badge badge-success">Operational</div>
+
+              {% elif asset.status == 'Maintenance' %}
+              <div class="badge badge-warning">Maintenance</div>
+
+              {% else %}
+              <div class="badge badge-error">Broken</div>
+              {% endif %}
+            </td>
+
+            <td class="flex gap-2">
+              <a
+                href="/assets/{{ asset.id }}/edit"
+                class="btn btn-warning btn-sm">
+                Edit
+              </a>
+
+              <!-- ADMIN (soft delete) -->
+              {% if role != 2 and asset.is_deleted == 0 %}
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete', {{ asset.id }})">
+                Delete
+              </button>
+              {% endif %}
+
+              <!-- SUPERADMIN (restore + hard delete) -->
+              {% if role == 0 and asset.is_deleted == 1 %}
+              <button
+                class="btn btn-success btn-sm"
+                onclick="openModal('restore', {{ asset.id }})">
+                Restore
+              </button>
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete_forever', {{ asset.id }})">
+                Delete Forever
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="flex justify-center mt-6 gap-2">
+        {% if page > 1 %}
+        <a href="/assets?page={{ page - 1 }}&q={{ q }}" class="btn btn-sm">
+          Prev
+        </a>
+        {% endif %}
+
+        <span class="btn btn-sm btn-disabled">
+          Page {{ page }} / {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="/assets?page={{ page + 1 }}&q={{ q }}" class="btn btn-sm">
+          Next
+        </a>
+        {% endif %}
+      </div>
+      <!-- DELETE MODAL -->
+      <!-- ACTION MODAL (REUSABLE) -->
+      <input type="checkbox" id="action-modal" class="modal-toggle" />
+
+      <div class="modal">
+        <div class="modal-box">
+          <h3 id="modal-title" class="font-bold text-lg"></h3>
+
+          <p id="modal-message" class="py-4"></p>
+
+          <div class="modal-action">
+            <label for="action-modal" class="btn"> Cancel </label>
+
+            <form id="actionForm" method="GET">
+              <button type="submit" id="confirm-btn" class="btn">
+                Confirm
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function openModal(type, id) {
+    const form = document.getElementById("actionForm");
+    const title = document.getElementById("modal-title");
+    const message = document.getElementById("modal-message");
+    const btn = document.getElementById("confirm-btn");
+
+    if (type === "delete") {
+      title.innerText = "Delete Asset";
+      message.innerText = "Are you sure you want to soft delete this asset?";
+      btn.innerText = "Delete";
+      btn.className = "btn btn-error";
+
+      form.action = "/assets/" + id + "/delete";
+    }
+
+    if (type === "restore") {
+      title.innerText = "Restore Asset";
+      message.innerText = "This asset will be restored from trash.";
+      btn.innerText = "Restore";
+      btn.className = "btn btn-success";
+
+      form.action = "/assets/" + id + "/restore";
+    }
+
+    if (type === "delete_forever") {
+      title.innerText = "PERMANENT DELETE";
+      message.innerText =
+        "This data will be permanently deleted and cannot be recovered.";
+      btn.innerText = "DELETE FOREVER";
+      btn.className = "btn btn-error";
+
+      form.action = "/assets/" + id + "/delete-permanent";
+    }
+
+    document.getElementById("action-modal").checked = true;
+  }
+</script>
+{% endblock %}

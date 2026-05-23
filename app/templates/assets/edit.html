@@ -1,0 +1,73 @@
+<!-- ==========================================
+templates/assets/edit.html
+========================================== -->
+
+{% extends "layouts/app.html" %} {% block title %} Edit Asset {% endblock %} {%
+block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Edit Asset</h1>
+      <p class="text-gray-500">Edit asset information</p>
+    </div>
+
+    <a href="/assets" class="btn btn-outline btn-primary">Back</a>
+  </div>
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="POST" action="/assets/{{ asset.id }}/update">
+        <!-- CODE -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Asset Code </span>
+          </label>
+
+          <input
+            type="text"
+            name="asset_code"
+            value="{{ asset.asset_code }}"
+            class="input input-bordered" />
+        </div>
+
+        <!-- NAME -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text"> Asset Name </span>
+          </label>
+
+          <input
+            type="text"
+            name="asset_name"
+            value="{{ asset.asset_name }}"
+            class="input input-bordered" />
+        </div>
+
+        <!-- STATUS -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text"> Status </span>
+          </label>
+
+          <select name="status" class="select select-bordered">
+            {% for status in ["Operational", "Maintenance", "Broken"] %}
+              <option
+                value="{{ status }}"
+                {% if asset.status == status %}
+                  selected
+                {% endif %}
+              >
+                {{ status }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn btn-primary">Update Asset</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

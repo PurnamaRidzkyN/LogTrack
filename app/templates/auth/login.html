@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Login - LogTrack
+    </title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- DaisyUI -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+        rel="stylesheet"
+    />
+
+</head>
+
+<body class="bg-base-200">
+
+
+    <div class="min-h-screen flex items-center justify-center px-4">
+
+        <div class="card w-full max-w-md bg-base-100 shadow-2xl">
+
+            <div class="card-body p-8">
+
+
+                <!-- TITLE -->
+                <div class="text-center mb-8">
+
+                    <h1 class="text-4xl font-bold">
+                        LogTrack
+                    </h1>
+
+                    <p class="text-gray-500 mt-2">
+                        Audit & Incident Monitoring System
+                    </p>
+
+                </div>
+
+
+                <!-- ERROR -->
+                {% if error %}
+
+                <div class="alert alert-error mb-4">
+
+                    <span>
+                        {{ error }}
+                    </span>
+
+                </div>
+
+                {% endif %}
+
+
+                <!-- FORM -->
+                <form
+                    method="POST"
+                    action="/login"
+                >
+
+
+                    <!-- EMAIL -->
+                    <div class="form-control mb-4">
+
+                        <label class="label">
+
+                            <span class="label-text">
+                                Email
+                            </span>
+
+                        </label>
+
+                        <input
+                            type="email"
+                            name="email"
+                            class="input input-bordered"
+                            placeholder="Input your email"
+                        >
+
+                    </div>
+
+
+                    <!-- PASSWORD -->
+                    <div class="form-control mb-6">
+
+                        <label class="label">
+
+                            <span class="label-text">
+                                Password
+                            </span>
+
+                        </label>
+
+                        <input
+                            type="password"
+                            name="password"
+                            class="input input-bordered"
+                            placeholder="Input your password"
+                        >
+
+                    </div>
+
+
+                    <!-- BUTTON -->
+                    <button class="btn btn-primary w-full">
+
+                        Login
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

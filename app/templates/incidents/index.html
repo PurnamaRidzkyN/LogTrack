@@ -1,0 +1,243 @@
+{% extends "layouts/app.html" %} {% block title %}Incidents{% endblock %} {%
+block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-3xl font-bold">Incidents</h1>
+    <p class="text-gray-500">Operational incident management</p>
+  </div>
+
+  <a href="/incidents/create" class="btn btn-primary"> + Add Incident </a>
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="overflow-x-auto">
+      <form method="GET" class="flex gap-2 mb-4">
+        <input
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="Search asset..."
+          class="input input-bordered w-64" />
+        <input
+          type="date"
+          name="start_date"
+          value="{{ start_date }}"
+          class="input input-bordered" />
+
+        <input
+          type="date"
+          name="end_date"
+          value="{{ end_date }}"
+          class="input input-bordered" />
+        <button class="btn btn-primary">Search</button>
+
+        {% if q or end_date or start_date %}
+        <a href="/incidents" class="btn btn-outline">Clear</a>
+        {% endif %}
+      </form>
+      <table class="table">
+        <!-- HEADER -->
+        <thead>
+          <tr>
+            {% if role == 0 %}
+            <th>ID</th>
+            {% endif %}
+            <th>Created At</th>
+            <th>Reported By</th>
+            <th>Handled By</th>
+            <th>Asset</th>
+            <th>Category</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <!-- BODY -->
+        <tbody>
+          {% for incident in incidents %}
+
+          <tr>
+            {% if role == 0 %}
+            <td>{{ incident.id }}</td>
+            {% endif %}
+            <!-- CREATED AT -->
+            <td>{{ incident.created_at }}</td>
+
+            <!-- REPORTED BY -->
+            <td>{{ incident.reported_by }}</td>
+
+            <!-- HANDLED BY -->
+            <td>{{ incident.handled_by_name }}</td>
+
+            <!-- ASSET -->
+            <td>{{ incident.asset_name }}</td>
+
+            <!-- CATEGORY -->
+            <td>{{ incident.category_name }}</td>
+
+            <!-- SEVERITY -->
+            <td>
+              {% if incident.severity_level == 'SEV-1' %}
+              <div class="badge badge-error">SEV-1</div>
+
+              {% elif incident.severity_level == 'SEV-2' %}
+              <div class="badge badge-warning">SEV-2</div>
+
+              {% elif incident.severity_level == 'SEV-3' %}
+              <div class="badge badge-info">SEV-3</div>
+
+              {% else %}
+              <div class="badge badge-ghost">{{ incident.severity_level }}</div>
+              {% endif %}
+            </td>
+
+            <!-- STATUS -->
+            <td>
+              {% if not incident.status %}
+              <div class="badge badge-neutral">No Status</div>
+
+              {% elif incident.status == 'Open' %}
+              <div class="badge badge-error">Open</div>
+
+              {% elif incident.status == 'In Progress' %}
+              <div class="badge badge-warning">In Progress</div>
+
+              {% elif incident.status == 'Resolved' %}
+              <div class="badge badge-info">Resolved</div>
+
+              {% elif incident.status == 'Closed' %}
+              <div class="badge badge-success">Closed</div>
+
+              {% else %}
+              <div class="badge badge-outline">{{ incident.status }}</div>
+              {% endif %}
+            </td>
+
+            <!-- ACTION -->
+            <td class="flex gap-2">
+              <!-- VIEW DETAIL -->
+              <a
+                href="/incidents/{{ incident.id }}"
+                class="btn btn-info btn-sm">
+                Detail
+              </a>
+
+              <!-- EDIT (optional kalau kamu mau) -->
+              <a
+                href="/incidents/{{ incident.id }}/edit"
+                class="btn btn-warning btn-sm">
+                Edit
+              </a>
+
+              <!-- ADMIN (soft delete) -->
+              {% if role != 2 and incident.is_deleted == 0 %}
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete', {{ incident.id }})">
+                Delete
+              </button>
+              {% endif %}
+
+              <!-- SUPERADMIN (restore + hard delete) -->
+              {% if role == 0 and incident.is_deleted == 1 %}
+              <button
+                class="btn btn-success btn-sm"
+                onclick="openModal('restore', {{ incident.id }})">
+                Restore
+              </button>
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete_forever', {{ incident.id }})">
+                Delete Forever
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="flex justify-center mt-6 gap-2">
+        {% if page > 1 %}
+        <a href="/assets?page={{ page - 1 }}&q={{ q }}" class="btn btn-sm">
+          Prev
+        </a>
+        {% endif %}
+
+        <span class="btn btn-sm btn-disabled">
+          Page {{ page }} / {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="/assets?page={{ page + 1 }}&q={{ q }}" class="btn btn-sm">
+          Next
+        </a>
+        {% endif %}
+      </div>
+      <!-- DELETE MODAL -->
+      <!-- ACTION MODAL (REUSABLE) -->
+      <input type="checkbox" id="action-modal" class="modal-toggle" />
+
+      <div class="modal">
+        <div class="modal-box">
+          <h3 id="modal-title" class="font-bold text-lg"></h3>
+
+          <p id="modal-message" class="py-4"></p>
+
+          <div class="modal-action">
+            <label for="action-modal" class="btn"> Cancel </label>
+
+            <form id="actionForm" method="GET">
+              <button type="submit" id="confirm-btn" class="btn">
+                Confirm
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function openModal(type, id) {
+    const form = document.getElementById("actionForm");
+    const title = document.getElementById("modal-title");
+    const message = document.getElementById("modal-message");
+    const btn = document.getElementById("confirm-btn");
+
+    if (type === "delete") {
+      title.innerText = "Delete Incident";
+      message.innerText = "Are you sure you want to soft delete this incident?";
+      btn.innerText = "Delete";
+      btn.className = "btn btn-error";
+
+      form.action = "/incidents/" + id + "/delete";
+    }
+
+    if (type === "restore") {
+      title.innerText = "Restore Incident";
+      message.innerText = "This incident will be restored from trash.";
+      btn.innerText = "Restore";
+      btn.className = "btn btn-success";
+
+      form.action = "/assets/" + id + "/restore";
+    }
+
+    if (type === "delete_forever") {
+      title.innerText = "PERMANENT DELETE";
+      message.innerText =
+        "This data will be permanently deleted and cannot be recovered.";
+      btn.innerText = "DELETE FOREVER";
+      btn.className = "btn btn-error";
+
+      form.action = "/assets/" + id + "/delete-permanent";
+    }
+
+    document.getElementById("action-modal").checked = true;
+  }
+</script>
+{% endblock %}

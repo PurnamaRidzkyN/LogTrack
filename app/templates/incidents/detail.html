@@ -1,0 +1,105 @@
+{% extends "layouts/app.html" %} {% block title %} Incident Detail {% endblock
+%} {% block content %}
+
+<div class="max-w-4xl mx-auto">
+  <!-- HEADER -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Incident #{{ incident.id }}</h1>
+      <p class="text-gray-500">Detail incident</p>
+    </div>
+
+    <a href="/incidents" class="btn btn-outline btn-primary">Back</a>
+  </div>
+
+  <!-- CARD -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <!-- BADGES -->
+      <div class="flex gap-2 mb-4">
+        {% if incident.severity_level == 'SEV-1' %}
+        <div class="badge badge-error">SEV-1</div>
+        {% elif incident.severity_level == 'SEV-2' %}
+        <div class="badge badge-warning">SEV-2</div>
+        {% else %}
+        <div class="badge badge-info">{{ incident.severity_level }}</div>
+        {% endif %}
+
+        <div class="badge badge-outline badge-info">{{ incident.status }}</div>
+
+        {% if incident.is_deleted == 1 %}
+        <div class="badge badge-error">DELETED</div>
+        {% endif %}
+      </div>
+
+      <!-- INFO -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <p class="text-gray-500 text-sm">Asset</p>
+          <p class="font-semibold">{{ incident.asset_name }}</p>
+        </div>
+
+        <div>
+          <p class="text-gray-500 text-sm">Category</p>
+          <p class="font-semibold">{{ incident.category_name }}</p>
+        </div>
+
+        <div>
+          <p class="text-gray-500 text-sm">Action Type</p>
+          <p class="font-semibold">{{ incident.action_type }}</p>
+        </div>
+
+        <div>
+          <p class="text-gray-500 text-sm">Created By</p>
+          <p class="font-semibold">{{ incident.user_name }}</p>
+        </div>
+      </div>
+
+      <!-- TIME -->
+      <div class="text-sm text-gray-500 mb-6">
+        Created: <b>{{ incident.created_at }}</b><br />
+        Updated: <b>{{ incident.updated_at }}</b>
+      </div>
+
+      <!-- DETAIL -->
+      <div class="mb-6">
+        <h2 class="font-bold text-lg mb-2">Detail</h2>
+        <div class="bg-gray-50 p-4 rounded-lg whitespace-pre-line">
+          {{ incident.detail }}
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="flex gap-2">
+        <!-- EDIT -->
+        <a href="/incidents/{{ incident.id }}/edit" class="btn btn-warning">
+          Edit
+        </a>
+
+        <!-- SOFT DELETE -->
+        {% if role != 2 and incident.is_deleted == 0 %}
+        <form method="POST" action="/incidents/{{ incident.id }}/delete">
+          <button class="btn btn-error">Delete</button>
+        </form>
+        {% endif %}
+
+        <!-- RESTORE + PERMANENT DELETE (SUPERADMIN ONLY) -->
+        {% if role == 0 and incident.is_deleted == 1 %}
+
+        <form method="POST" action="/incidents/{{ incident.id }}/restore">
+          <button class="btn btn-success">Restore</button>
+        </form>
+
+        <form
+          method="POST"
+          action="/incidents/{{ incident.id }}/delete-permanent">
+          <button class="btn btn-error">Delete Forever</button>
+        </form>
+
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

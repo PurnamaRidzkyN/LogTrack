@@ -1,0 +1,162 @@
+{% extends "layouts/app.html" %} {% block title %} Create Incident {% endblock %} {% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <!-- HEADER -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Create Incident</h1>
+      <p class="text-gray-500">Report new incident</p>
+    </div>
+
+    <a href="/incidents" class="btn btn-outline btn-primary">Back</a>
+  </div>
+
+  <!-- FORM -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="POST" action="/incidents/store">
+        <!-- ASSET -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Asset</span>
+          </label>
+
+          <div class="relative">
+            <input
+              type="text"
+              id="asset_input"
+              class="input input-bordered w-full"
+              placeholder="Search asset..."
+              autocomplete="off"
+              onkeyup="searchAsset(this.value)"
+              required />
+
+            <input type="hidden" name="asset_id" id="asset_id" />
+
+            <ul
+              id="asset_dropdown"
+              class="absolute z-50 bg-base-100 border w-full hidden max-h-40 overflow-auto rounded-lg shadow"></ul>
+          </div>
+        </div>
+
+        <!-- CATEGORY -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Category</span>
+          </label>
+
+          <div class="relative">
+            <input
+              type="text"
+              id="category_input"
+              class="input input-bordered w-full"
+              placeholder="Search category..."
+              autocomplete="off"
+              onkeyup="searchCategory(this.value)"
+              required />
+
+            <input
+              type="hidden"
+              name="incident_category_id"
+              id="incident_category_id" />
+
+            <ul
+              id="category_dropdown"
+              class="absolute z-50 bg-base-100 border w-full hidden max-h-40 overflow-auto rounded-lg shadow"></ul>
+          </div>
+        </div>
+
+        <!-- DETAIL -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Detail</span>
+          </label>
+
+          <textarea
+            name="detail"
+            class="textarea textarea-bordered"
+            rows="4"
+            placeholder="Explain incident detail..."
+            required></textarea>
+        </div>
+
+        <!-- BUTTON -->
+        <button class="btn btn-primary w-full">Submit Incident</button>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  async function searchAsset(keyword) {
+    const dropdown = document.getElementById("asset_dropdown");
+
+    if (!keyword || keyword.length < 1) {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    const res = await fetch(`/api/assets?q=${keyword}`);
+    const data = await res.json();
+
+    dropdown.innerHTML = "";
+
+    if (data.length === 0) {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    data.forEach((item) => {
+      const li = document.createElement("li");
+
+      li.className = "p-2 hover:bg-gray-200 cursor-pointer";
+      li.innerText = item.asset_name;
+
+      li.onclick = () => {
+        document.getElementById("asset_input").value = item.asset_name;
+        document.getElementById("asset_id").value = item.id;
+        dropdown.classList.add("hidden");
+      };
+
+      dropdown.appendChild(li);
+    });
+
+    dropdown.classList.remove("hidden");
+  }
+
+  async function searchCategory(keyword) {
+    const dropdown = document.getElementById("category_dropdown");
+
+    if (!keyword || keyword.length < 1) {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    const res = await fetch(`/api/categories?q=${keyword}`);
+    const data = await res.json();
+
+    dropdown.innerHTML = "";
+
+    if (data.length === 0) {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    data.forEach((item) => {
+      const li = document.createElement("li");
+
+      li.className = "p-2 hover:bg-gray-200 cursor-pointer";
+      li.innerText = item.category_name;
+
+      li.onclick = () => {
+        document.getElementById("category_input").value = item.category_name;
+        document.getElementById("incident_category_id").value = item.id;
+        dropdown.classList.add("hidden");
+      };
+
+      dropdown.appendChild(li);
+    });
+
+    dropdown.classList.remove("hidden");
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %} {% block title %} Create Incident Category {%
+endblock %} {% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Create Incident Category</h1>
+      <p class="text-gray-500">Add new incident category</p>
+    </div>
+
+    <a href="/incident_categories" class="btn btn-outline btn-primary">Back</a>
+  </div>
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="POST" action="/incident_categories/store">
+        <!-- CATEGORY NAME -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Category Name</span>
+          </label>
+
+          <input
+            type="text"
+            name="category_name"
+            class="input input-bordered"
+            required />
+        </div>
+
+        <!-- DEFAULT SEVERITY -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Default Severity</span>
+          </label>
+
+          <select name="default_severity" class="select select-bordered">
+            <option>SEV-1</option>
+            <option>SEV-2</option>
+            <option>SEV-3</option>
+            <option>INFO</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary">Save Category</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

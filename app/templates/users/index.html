@@ -1,0 +1,188 @@
+{% extends "layouts/app.html" %} {% block title %}{{ account }} account {%
+endblock %} {% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-3xl font-bold">{{ account }} account</h1>
+    <p class="text-gray-500">Management {{ account }} account</p>
+  </div>
+
+  <a href="/users/create" class="btn btn-primary">
+    + Add {{ account }} account
+  </a>
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="overflow-x-auto">
+      <form method="GET" class="flex gap-2 mb-4">
+        <input
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="Search..."
+          class="input input-bordered w-64" />
+
+        <button class="btn btn-primary">Search</button>
+
+        {% if q %}
+        <a href="/users" class="btn btn-outline btn-primary"> Reset </a>
+        {% endif %}
+      </form>
+      <table class="table">
+        <!-- HEADER -->
+        <thead>
+          <tr>
+            {% if role == 0 %}
+            <th>ID</th>
+            {% endif %}
+            <th>Name</th>
+            <th>email</th>
+            <th>role</th>
+          </tr>
+        </thead>
+
+        <!-- BODY -->
+        <tbody>
+          {% for user in users %}
+
+          <tr>
+            {% if role == 0 %}
+            <td>{{ user.id }}</td>
+            {% endif %}
+
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              {% if user.role == 0 %}
+              <div class="badge badge-error">Super Admin</div>
+
+              {% elif user.role == 1 %}
+              <div class="badge badge-warning">Admin</div>
+
+              {% else %}
+              <div class="badge badge-info">User</div>
+              {% endif %}
+            </td>
+
+            <!-- ACTION -->
+            <td class="flex gap-2">
+              {% if role != 2 and user.is_deleted == 0 %}
+              <button
+                class="btn btn-sm btn-warning"
+                onclick="openModal('reset_password', {{ user.id }})">
+                Reset Password
+              </button>
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete', {{ user.id }})">
+                Delete
+              </button>
+              {% endif %} {% if role == 0 and user.is_deleted|int== 1 %}
+              <button
+                class="btn btn-success btn-sm"
+                onclick="openModal('restore', {{ user.id }})">
+                Restore
+              </button>
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete_forever', {{ user.id }})">
+                Delete Forever
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="flex justify-center mt-6 gap-2">
+        {% if page > 1 %}
+        <a href="/users?page={{ page - 1 }}&q={{ q }}" class="btn btn-sm">
+          Prev
+        </a>
+        {% endif %}
+
+        <span class="btn btn-sm btn-disabled">
+          Page {{ page }} / {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="/users?page={{ page + 1 }}&q={{ q }}" class="btn btn-sm">
+          Next
+        </a>
+        {% endif %}
+      </div>
+      <!-- DELETE MODAL -->
+      <!-- ACTION MODAL (REUSABLE) -->
+      <input type="checkbox" id="action-modal" class="modal-toggle" />
+
+      <div class="modal">
+        <div class="modal-box">
+          <h3 id="modal-title" class="font-bold text-lg"></h3>
+
+          <p id="modal-message" class="py-4"></p>
+
+          <div class="modal-action">
+            <label for="action-modal" class="btn"> Cancel </label>
+
+            <form id="actionForm" method="POST">
+              <button type="submit" id="confirm-btn" class="btn">
+                Confirm
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function openModal(type, id) {
+    const form = document.getElementById("actionForm");
+    const title = document.getElementById("modal-title");
+    const message = document.getElementById("modal-message");
+    const btn = document.getElementById("confirm-btn");
+
+    if (type === "reset_password") {
+      title.innerText = "Reset Password";
+      message.innerText =
+        "Are you sure you want to reset this user's password?";
+      btn.innerText = "Reset";
+      btn.className = "btn btn-warning";
+      form.action = "/users/" + id + "/reset-password";
+    }
+    if (type === "delete") {
+      title.innerText = "Delete user";
+      message.innerText = "Are you sure you want to soft delete this user?";
+      btn.innerText = "Delete";
+      btn.className = "btn btn-error";
+
+      form.action = "/users/" + id + "/delete";
+    }
+
+    if (type === "restore") {
+      title.innerText = "Restore user";
+      message.innerText = "This user will be restored from trash.";
+      btn.innerText = "Restore";
+      btn.className = "btn btn-success";
+
+      form.action = "/users/" + id + "/restore";
+    }
+
+    if (type === "delete_forever") {
+      title.innerText = "PERMANENT DELETE";
+      message.innerText =
+        "This data will be permanently deleted and cannot be recovered.";
+      btn.innerText = "DELETE FOREVER";
+      btn.className = "btn btn-error";
+
+      form.action = "/users/" + id + "/delete-permanent";
+    }
+
+    document.getElementById("action-modal").checked = true;
+  }
+</script>
+{% endblock %}

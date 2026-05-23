@@ -1,0 +1,193 @@
+{% extends "layouts/app.html" %} {% block title %}Incident Categories{% endblock
+%} {% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-3xl font-bold">Incident Categories</h1>
+    <p class="text-gray-500">Management incident categories</p>
+  </div>
+
+  <a href="/incident_categories/create" class="btn btn-primary">
+    + Add Incident Category
+  </a>
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="overflow-x-auto">
+      <form method="GET" class="flex gap-2 mb-4">
+        <input
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="Search incident category..."
+          class="input input-bordered w-64" />
+
+        <button class="btn btn-primary">Search</button>
+
+        {% if q %}
+        <a href="/incident_categories" class="btn btn-outline btn-primary">
+          Reset
+        </a>
+        {% endif %}
+      </form>
+      <table class="table">
+        <!-- HEADER -->
+        <thead>
+          <tr>
+            {% if role == 0 %}
+            <th>ID</th>
+            {% endif %}
+            <th>Category Name</th>
+            <th>Default Severity</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <!-- BODY -->
+        <tbody>
+          {% for incident_category in incident_categories %}
+
+          <tr>
+            {% if role == 0 %}
+            <td>{{ incident_category.id }}</td>
+            {% endif %}
+
+            <td>{{ incident_category.category_name }}</td>
+
+            <td>
+              {% if incident_category.default_severity == 'SEV-1' %}
+              <div class="badge badge-error">SEV-1 (Critical)</div>
+
+              {% elif incident_category.default_severity == 'SEV-2' %}
+              <div class="badge badge-warning">SEV-2 (High)</div>
+
+              {% elif incident_category.default_severity == 'SEV-3' %}
+              <div class="badge badge-info">SEV-3 (Medium)</div>
+
+              {% else %}
+              <div class="badge badge-neutral">
+                {{ incident_category.default_severity }}
+              </div>
+              {% endif %}
+            </td>
+            <!-- ACTION -->
+            <td class="flex gap-2">
+              <a
+                href="/incident_categories/{{ incident_category.id }}/edit"
+                class="btn btn-warning btn-sm">
+                Edit
+              </a>
+
+              {% if role != 2 and incident_category.is_deleted == 0 %}
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete', {{ incident_category.id }})">
+                Delete
+              </button>
+              {% endif %} {% if role == 0 and incident_category.is_deleted|int
+              == 1 %}
+              <button
+                class="btn btn-success btn-sm"
+                onclick="openModal('restore', {{ incident_category.id }})">
+                Restore
+              </button>
+
+              <button
+                class="btn btn-error btn-sm"
+                onclick="openModal('delete_forever', {{ incident_category.id }})">
+                Delete Forever
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="flex justify-center mt-6 gap-2">
+        {% if page > 1 %}
+        <a
+          href="/incident_categories?page={{ page - 1 }}&q={{ q }}"
+          class="btn btn-sm">
+          Prev
+        </a>
+        {% endif %}
+
+        <span class="btn btn-sm btn-disabled">
+          Page {{ page }} / {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a
+          href="/incident_categories?page={{ page + 1 }}&q={{ q }}"
+          class="btn btn-sm">
+          Next
+        </a>
+        {% endif %}
+      </div>
+      <!-- DELETE MODAL -->
+      <!-- ACTION MODAL (REUSABLE) -->
+      <input type="checkbox" id="action-modal" class="modal-toggle" />
+
+      <div class="modal">
+        <div class="modal-box">
+          <h3 id="modal-title" class="font-bold text-lg"></h3>
+
+          <p id="modal-message" class="py-4"></p>
+
+          <div class="modal-action">
+            <label for="action-modal" class="btn"> Cancel </label>
+
+            <form id="actionForm" method="GET">
+              <button type="submit" id="confirm-btn" class="btn">
+                Confirm
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function openModal(type, id) {
+    const form = document.getElementById("actionForm");
+    const title = document.getElementById("modal-title");
+    const message = document.getElementById("modal-message");
+    const btn = document.getElementById("confirm-btn");
+
+    if (type === "delete") {
+      title.innerText = "Delete incident category";
+      message.innerText =
+        "Are you sure you want to soft delete this incident category?";
+      btn.innerText = "Delete";
+      btn.className = "btn btn-error";
+
+      form.action = "/incident_categories/" + id + "/delete";
+    }
+
+    if (type === "restore") {
+      title.innerText = "Restore incident category";
+      message.innerText = "This incident category will be restored from trash.";
+      btn.innerText = "Restore";
+      btn.className = "btn btn-success";
+
+      form.action = "/incident_categories/" + id + "/restore";
+    }
+
+    if (type === "delete_forever") {
+      title.innerText = "PERMANENT DELETE";
+      message.innerText =
+        "This data will be permanently deleted and cannot be recovered.";
+      btn.innerText = "DELETE FOREVER";
+      btn.className = "btn btn-error";
+
+      form.action = "/incident_categories/" + id + "/delete-permanent";
+    }
+
+    document.getElementById("action-modal").checked = true;
+  }
+</script>
+{% endblock %}
