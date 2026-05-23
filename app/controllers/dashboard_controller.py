@@ -23,11 +23,42 @@ def dashboard():
         incident_metrics = conn.execute(
             """
             SELECT 
-                SUM(CASE WHEN severity_level = 'SEV-1' AND status != 'Resolved' THEN 1 ELSE 0 END) as critical_total,
-                SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END) as open_count,
-                SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as progress_count,
-                SUM(CASE WHEN DATE(created_at) = DATE('now', 'localtime') THEN 1 ELSE 0 END) as today_total
+                SUM(
+                    CASE 
+                        WHEN severity_level = 'SEV-1'
+                        AND status NOT IN ('Resolved', 'Closed')
+                        THEN 1 
+                        ELSE 0 
+                    END
+                ) as critical_total,
+
+                SUM(
+                    CASE 
+                        WHEN status = 'Open'
+                        THEN 1 
+                        ELSE 0 
+                    END
+                ) as open_count,
+
+                SUM(
+                    CASE 
+                        WHEN status = 'In Progress'
+                        THEN 1 
+                        ELSE 0 
+                    END
+                ) as progress_count,
+
+                SUM(
+                    CASE 
+                        WHEN DATE(created_at) =
+                        DATE('now', 'localtime')
+                        THEN 1 
+                        ELSE 0 
+                    END
+                ) as today_total
+
             FROM incidents
+            WHERE is_deleted = 0
             """
         ).fetchone()
 
@@ -42,6 +73,7 @@ def dashboard():
                 COUNT(*) as total_assets,
                 SUM(CASE WHEN status = 'Broken' THEN 1 ELSE 0 END) as broken_total
             FROM assets
+            where is_deleted = 0
             """
         ).fetchone()
 
@@ -65,6 +97,7 @@ def dashboard():
             LEFT JOIN assets a ON a.id = i.asset_id
             LEFT JOIN incident_categories c ON c.id = i.incident_category_id
             WHERE i.severity_level IN ('SEV-1', 'SEV-2') AND i.status NOT IN ('Resolved', 'Closed')
+            and i.is_deleted = 0
             ORDER BY i.severity_level ASC, i.created_at ASC
             LIMIT 7
             """
@@ -82,7 +115,7 @@ def dashboard():
                 asset_code, asset_name,
                 CAST(julianday('now', 'localtime') - julianday(updated_at) AS INTEGER) as downtime_days
             FROM assets
-            WHERE status = 'Broken'
+            WHERE status = 'Broken' and is_deleted = 0
             ORDER BY updated_at ASC
             LIMIT 5
             """
@@ -98,7 +131,7 @@ def dashboard():
             """
             SELECT DATE(created_at) as report_date, COUNT(id) as total
             FROM incidents
-            WHERE DATE(created_at) >= DATE('now', '-6 days', 'localtime')
+            WHERE DATE(created_at) >= DATE('now', '-6 days', 'localtime') and is_deleted = 0
             GROUP BY DATE(created_at)
             ORDER BY DATE(created_at) ASC
             """
@@ -112,6 +145,7 @@ def dashboard():
         SELECT c.category_name, COUNT(i.id) as total
         FROM incidents i
         LEFT JOIN incident_categories c ON c.id = i.incident_category_id
+        where i.is_deleted = 0
         GROUP BY c.id
         ORDER BY total DESC
         """).fetchall()
