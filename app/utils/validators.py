@@ -57,7 +57,7 @@ def validate_date(date_string):
 
 def validate_severity(severity):
     """Validate incident severity"""
-    valid_severities = ['SEV-1', 'SEV-2', 'SEV-3', 'SEV-4']
+    valid_severities = ['SEV-1', 'SEV-2', 'SEV-3', 'SEV-4','SEV-5']
     return severity in valid_severities
 
 

@@ -35,7 +35,7 @@ sudo apt install -y python3 python3-venv python3-pip git
 
 ```bash
 cd /opt
-sudo git clone <your-repo-url> logtrack
+sudo git clone https://github.com/PurnamaRidzkyN/LogTrack logtrack
 cd logtrack
 ```
 
@@ -64,13 +64,43 @@ DATABASE_PATH=instance/logtrack.db
 DEBUG=false
 ```
 
-## Initialize the database
+## Initialize the Database
+
+### Development Mode (Fresh + Sample Data)
 
 ```bash
 python -m app.database.seed fresh
+````
+
+This command will:
+
+* Reset the database
+* Recreate all tables
+* Seed sample/demo data
+
+---
+
+### Production Mode (Only Super Admin)
+
+Before creating the production database, reset it first:
+
+```bash
+python -m app.database.seed reset
 ```
 
-This command creates the database schema and seeds sample data.
+Then create only the super admin account:
+
+```bash
+python -m app.database.seed superadmin
+```
+
+This mode will:
+
+* Create a clean database
+* Seed only the super admin account
+* Skip all sample/demo data
+
+
 
 ## Run the application manually
 
@@ -108,7 +138,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/opt/logtrack
 EnvironmentFile=/opt/logtrack/.env
-ExecStart=/opt/logtrack/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5000 run:app
+ExecStart=/opt/logtrack/venv/bin/gunicorn --workers 1 --threads 4 --bind 0.0.0.0:5000 run:app
 Restart=always
 
 [Install]
