@@ -267,7 +267,7 @@ def incident_category_delete(id):
             f"Soft delete category: {old_name}")
         conn.commit()
 
-        flash("Incident Category successfully soft deleted", "warning")
+        flash("Incident Category successfully deleted", "warning")
 
     except Exception as e:
         print("ERROR SOFT DELETE:", e)

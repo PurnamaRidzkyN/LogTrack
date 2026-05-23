@@ -40,6 +40,13 @@ def user_index():
         params = []
 
         # =========================
+        # SOFT DELETE FILTER
+        # =========================
+        if role == 1:  # admin
+            query += " AND is_deleted = 0"
+        params = []
+
+        # =========================
         # ROLE FILTER
         # =========================
         if role == 1:
@@ -65,7 +72,7 @@ def user_index():
             f"SELECT COUNT(*) {query}",
             params
         ).fetchone()[0]
-
+        
         # =========================
         # DATA
         # =========================
@@ -164,27 +171,59 @@ def user_delete(id):
 
     try:
         conn = get_db_connection()
-        
+
+        current_user_id = session.get("user_id")
+        current_role = session.get("role")
+
+        # =========================
+        # GET TARGET USER
+        # =========================
         old_data = conn.execute("""
-            SELECT name, role
+            SELECT id, name, role
             FROM users
             WHERE id = ?
         """, (id,)).fetchone()
-        
-        old_name = old_data["name"] if old_data else "Unknown"
+
+        if not old_data:
+            flash("User not found", "error")
+            return redirect("/users")
+
+        # =========================
+        # PROTECTION RULES
+        # =========================
+
+        # ❌ tidak boleh hapus diri sendiri
+        if int(id) == int(current_user_id):
+            flash("You cannot delete your own account", "error")
+            return redirect("/users")
+
+        # ❌ superadmin tidak boleh dihapus
+        if old_data["role"] == 0:
+            flash("Super Admin cannot be deleted", "error")
+            return redirect("/users")
+
+        # =========================
+        # ROLE LABEL
+        # =========================
+        old_name = old_data["name"]
         old_role = (
             "superadmin" if old_data["role"] == 0
             else "admin" if old_data["role"] == 1
-            else "user" if old_data["role"] == 2
-            else "Unknown"
+            else "user"
         )
 
+        # =========================
+        # SOFT DELETE
+        # =========================
         conn.execute("""
             UPDATE users
             SET is_deleted = 1
             WHERE id = ?
         """, (id,))
 
+        # =========================
+        # AUDIT LOG
+        # =========================
         create_audit_log(
             session.get("user_id"),
             "DELETE",
@@ -194,6 +233,8 @@ def user_delete(id):
         )
 
         conn.commit()
+
+        flash("User deleted successfully", "success")
 
     finally:
         if conn:

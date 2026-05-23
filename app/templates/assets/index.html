@@ -24,7 +24,7 @@ content %}
         <button class="btn btn-primary">Search</button>
 
         {% if q %}
-        <a href="/assets" class="btn btn-outline btn-primary"> Reset </a>
+        <a href="/assets" class=""btn btn-outline">Clear</a>
         {% endif %}
       </form>
       <table class="table">
@@ -130,7 +130,7 @@ content %}
           <div class="modal-action">
             <label for="action-modal" class="btn"> Cancel </label>
 
-            <form id="actionForm" method="GET">
+            <form id="actionForm" method="POST">
               <button type="submit" id="confirm-btn" class="btn">
                 Confirm
               </button>
@@ -150,7 +150,7 @@ content %}
 
     if (type === "delete") {
       title.innerText = "Delete Asset";
-      message.innerText = "Are you sure you want to soft delete this asset?";
+      message.innerText = "Are you sure you want to delete this asset?";
       btn.innerText = "Delete";
       btn.className = "btn btn-error";
 
@@ -159,7 +159,7 @@ content %}
 
     if (type === "restore") {
       title.innerText = "Restore Asset";
-      message.innerText = "This asset will be restored from trash.";
+      message.innerText = "Restore this asset?";
       btn.innerText = "Restore";
       btn.className = "btn btn-success";
 

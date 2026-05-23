@@ -26,9 +26,7 @@
         <button class="btn btn-primary">Search</button>
 
         {% if q %}
-        <a href="/incident_categories" class="btn btn-outline btn-primary">
-          Reset
-        </a>
+        <a href="/incident_categories" class=""btn btn-outline">Clear</a>
         {% endif %}
       </form>
       <table class="table">
@@ -57,16 +55,24 @@
 
             <td>
               {% if incident_category.default_severity == 'SEV-1' %}
-              <div class="badge badge-error">SEV-1 (Critical)</div>
+              <div class="badge badge-error text-black font-bold">SEV-1</div>
 
               {% elif incident_category.default_severity == 'SEV-2' %}
-              <div class="badge badge-warning">SEV-2 (High)</div>
+              <div class="badge badge-warning text-black font-bold ">SEV-2</div>
 
               {% elif incident_category.default_severity == 'SEV-3' %}
-              <div class="badge badge-info">SEV-3 (Medium)</div>
+              <div class="badge badge-info text-black font-bold">SEV-3</div>
+
+              {% elif incident_category.default_severity == 'SEV-4' %}
+              <div class="badge badge-success text-black font-bold">SEV-4</div>
+
+              {% elif incident_category.default_severity == 'SEV-5' %}
+              <div class="badge bg-gray-300 text-gray-900 font-bold whitespace-nowrap">
+                SEV-5
+              </div>
 
               {% else %}
-              <div class="badge badge-neutral">
+              <div class="badge badge-outline">
                 {{ incident_category.default_severity }}
               </div>
               {% endif %}
@@ -140,7 +146,7 @@
           <div class="modal-action">
             <label for="action-modal" class="btn"> Cancel </label>
 
-            <form id="actionForm" method="GET">
+            <form id="actionForm" method="POST">
               <button type="submit" id="confirm-btn" class="btn">
                 Confirm
               </button>
@@ -160,8 +166,7 @@
 
     if (type === "delete") {
       title.innerText = "Delete incident category";
-      message.innerText =
-        "Are you sure you want to soft delete this incident category?";
+      message.innerText = "Are you sure you want to delete this incident category?";
       btn.innerText = "Delete";
       btn.className = "btn btn-error";
 
@@ -170,7 +175,7 @@
 
     if (type === "restore") {
       title.innerText = "Restore incident category";
-      message.innerText = "This incident category will be restored from trash.";
+      message.innerText = "Restore this incident category?";
       btn.innerText = "Restore";
       btn.className = "btn btn-success";
 

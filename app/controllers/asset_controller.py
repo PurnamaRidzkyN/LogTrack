@@ -316,7 +316,7 @@ def asset_delete(id):
 
         conn.commit()
 
-        flash("Asset successfully soft deleted", "warning")
+        flash("Asset successfully deleted", "warning")
         
 
     except Exception as e:
@@ -396,7 +396,7 @@ def asset_delete_permanent(id):
         conn = get_db_connection()
         
         old_data = conn.execute("""
-            SELECT asset_name, asset_type, asset_location, asset_description, asset_status
+            SELECT asset_name, asset_code , status
             FROM assets
             WHERE id = ?
         """, (id,)).fetchone()

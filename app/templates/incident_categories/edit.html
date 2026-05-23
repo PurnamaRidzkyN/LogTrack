@@ -67,12 +67,19 @@ endblock %} {% block content %}
             </option>
 
             <option
-              value="INFO"
-              {% if incident_category.default_severity == "INFO" %}
+              value="SEV-4"
+              {% if incident_category.default_severity == "SEV-4" %}
                 selected
               {% endif %}
             >
-              INFO
+              SEV-4
+            </option>
+            <option
+              value="SEV-5"
+              {% if incident_category.default_severity == "SEV-5" %}
+                selected
+              {% endif %}
+              > SEV-5
             </option>
           </select>
         </div>

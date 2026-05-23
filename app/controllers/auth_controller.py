@@ -74,7 +74,10 @@ def login_post():
             entity_id=user["id"],
             detail=f"User {user['name']} logged in"
         )
-
+        
+        if user["role"] == 2:
+            return redirect(url_for("incident_index"))
+        
         return redirect(url_for("dashboard"))
 
     except Exception as e:

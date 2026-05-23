@@ -1,4 +1,6 @@
 
+from datetime import datetime
+
 from flask import (
     render_template,
     request,
@@ -70,7 +72,7 @@ def audit_log_index():
         # =========================
         # DATA
         # =========================
-        logs = conn.execute(
+        rows = conn.execute(
             f"""
             SELECT
                 a.*,
@@ -81,7 +83,18 @@ def audit_log_index():
             """,
             params + [limit, offset]
         ).fetchall()
+        
+        logs = []
 
+        for row in rows:
+            row = dict(row)
+
+            # format created_at
+            if row.get("created_at"):
+                dt = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
+                row["created_at"] = dt.strftime("%d %b %Y • %H:%M")
+
+            logs.append(row)
         total_pages = (total + limit - 1) // limit
 
         return render_template(

@@ -27,7 +27,8 @@ from app.controllers.incident_controller import (
     incident_restore,
     incident_delete_permanent,
     api_assets,
-    api_categories
+    api_categories,
+    export_incidents_csv
 )
 
 # ASSET CONTROLLER
@@ -173,7 +174,7 @@ def register_routes(app):
     
     app.add_url_rule(
         "/incidents/<int:id>/delete",
-        view_func=login_required(admin_required(incident_delete)),
+        view_func=login_required((incident_delete)),
         methods=["POST"],
         endpoint="incident_delete"
     )
@@ -201,6 +202,11 @@ def register_routes(app):
         "/api/categories",
         view_func=login_required(api_categories),
         endpoint="api_categories"
+    )
+    app.add_url_rule(
+        "/export-incidents-csv",
+        view_func=login_required(admin_required(export_incidents_csv)),
+        endpoint="export_incidents_csv"
     )
     # ==========================================
     # ASSETS

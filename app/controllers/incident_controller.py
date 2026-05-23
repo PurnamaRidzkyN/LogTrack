@@ -2,6 +2,11 @@
 # controllers/incident_controller.py
 # ==========================================
 
+import csv
+import io
+from flask import Response
+from datetime import datetime
+
 from flask import render_template
 
 from app.database.connection import get_db_connection
@@ -25,6 +30,8 @@ def incident_index():
         role = session.get("role")
         role = int(role) if role is not None else 2
 
+        user_id = session.get("user_id")
+
         page = request.args.get("page", 1, type=int)
         q = request.args.get("q", "")
         start_date = request.args.get("start_date", "")
@@ -36,42 +43,47 @@ def incident_index():
         params = []
 
         # =========================
-        # BASE QUERY + JOIN
+        # BASE QUERY
         # =========================
         base_query = """
         FROM incidents i
         LEFT JOIN assets a ON i.asset_id = a.id
         LEFT JOIN incident_categories c ON i.incident_category_id = c.id
         LEFT JOIN users u ON i.user_id = u.id
-        Left JOIN users h ON i.handled_by = h.id
+        LEFT JOIN users h ON i.handled_by = h.id
         WHERE 1=1
         """
 
         # =========================
-        # ROLE FILTER
+        # ROLE FILTER (FIXED)
         # =========================
+        if role == 2:
+            base_query += " AND i.user_id = ?"
+            params.append(user_id)
+
         if role != 0:
             base_query += " AND i.is_deleted = 0"
 
         # =========================
-        # SEARCH (SEMUA FIELD)
+        # SEARCH
         # =========================
         if q:
             base_query += """
-                AND (
-                    i.severity_level LIKE ?
-                    OR i.status LIKE ?
-                    OR i.detail LIKE ?
-                    OR a.asset_name LIKE ?
-                    OR c.category_name LIKE ?
-                    OR u.name LIKE ?
-                    OR h.name LIKE ?
-                )
+            AND (
+                i.id LIKE ?
+                OR i.severity_level LIKE ?
+                OR i.status LIKE ?
+                OR i.detail LIKE ?
+                OR a.asset_name LIKE ?
+                OR c.category_name LIKE ?
+                OR u.name LIKE ?
+                OR h.name LIKE ?
+            )
             """
-            params.extend([f"%{q}%"] * 7)
+            params.extend([f"%{q}%"] * 8)
 
         # =========================
-        # FILTER DATE (OPTIONAL)
+        # DATE FILTER
         # =========================
         if start_date:
             base_query += " AND DATE(i.created_at) >= DATE(?)"
@@ -92,7 +104,7 @@ def incident_index():
         # =========================
         # DATA
         # =========================
-        incidents = conn.execute(
+        rows = conn.execute(
             f"""
             SELECT 
                 i.*,
@@ -106,7 +118,17 @@ def incident_index():
             """,
             params + [limit, offset]
         ).fetchall()
-        
+
+        incidents = []
+
+        for row in rows:
+            row = dict(row)
+
+            if row.get("created_at"):
+                dt = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
+                row["created_at"] = dt.strftime("%d %b %Y • %H:%M")
+
+            incidents.append(row)
 
         total_pages = (total + limit - 1) // limit
 
@@ -123,7 +145,6 @@ def incident_index():
 
     except Exception as e:
         print("ERROR INCIDENT INDEX:", e)
-
         flash("Failed to retrieve incidents", "error")
 
         return render_template(
@@ -140,7 +161,6 @@ def incident_index():
     finally:
         if conn:
             conn.close()
-            
 def incident_edit(id):
 
     conn = None
@@ -197,7 +217,9 @@ def incident_update(id):
         allowed_severity = [
             "SEV-1",
             "SEV-2",
-            "SEV-3"
+            "SEV-3",
+            "SEV-4",
+            "SEV-5"
         ]
 
         allowed_status = [
@@ -274,8 +296,8 @@ def incident_update(id):
     finally:
         if conn:
             conn.close()
-
-    return redirect("/incidents")
+    
+    return redirect("/incidents/" + str(id))
 
 def incident_detail(id):
 
@@ -292,11 +314,13 @@ def incident_detail(id):
                 i.*,
                 a.asset_name,
                 c.category_name,
-                u.name AS user_name
+                u.name AS user_name,
+                h.name AS handled_by_name
             FROM incidents i
             LEFT JOIN assets a ON i.asset_id = a.id
             LEFT JOIN incident_categories c ON i.incident_category_id = c.id
             LEFT JOIN users u ON i.user_id = u.id
+            LEFT JOIN users h ON i.handled_by = h.id
             WHERE i.id = ?
         """, (id,)).fetchone()
 
@@ -304,21 +328,23 @@ def incident_detail(id):
             flash("Incident not found", "error")
             return redirect("/incidents")
 
+        incident = dict(incident)
+
+        if incident.get("created_at"):
+            dt = datetime.strptime(incident["created_at"], "%Y-%m-%d %H:%M:%S")
+            incident["created_at"] = dt.strftime("%d %b %Y • %H:%M")
+            incident["updated_at"] = dt.strftime("%d %b %Y • %H:%M")
+
         return render_template(
             "incidents/detail.html",
             incident=incident,
             role=role
         )
 
-    except Exception as e:
-        print("ERROR INCIDENT DETAIL:", e)
-        flash("Failed to retrieve incident details", "error")
-        return redirect("/incidents")
-
     finally:
         if conn:
             conn.close()
-            
+
 def incident_create():
     return render_template("incidents/create.html")
             
@@ -439,37 +465,56 @@ def incident_delete(id):
         conn = get_db_connection()
 
         role = session.get("role")
+        user_id = session.get("user_id")
+
         role = int(role) if role is not None else 2
 
-        if role == 2:
-            return "Forbidden", 403
-        
+        # =========================
+        # GET INCIDENT OWNER
+        # =========================
         old_data = conn.execute("""
-            SELECT is_deleted
+            SELECT user_id, detail
             FROM incidents
             WHERE id = ?
         """, (id,)).fetchone()
-        
-        old_data = old_data["detail"]
 
+        if not old_data:
+            flash("Incident not found", "error")
+            return redirect("/incidents")
+
+        # =========================
+        # PERMISSION CHECK
+        # =========================
+
+        # role user (2) hanya boleh hapus miliknya sendiri
+        if role == 2 and old_data["user_id"] != user_id:
+            flash("You can only delete your own incident", "error")
+            return redirect("/incidents")
+
+        # =========================
+        # SOFT DELETE
+        # =========================
         conn.execute("""
             UPDATE incidents
             SET is_deleted = 1,
                 updated_at = ?
             WHERE id = ?
         """, (now_wib(), id))
-        
+
+        # =========================
+        # AUDIT LOG
+        # =========================
         create_audit_log(
-            session.get("user_id"),
+            user_id,
             "DELETE",
             "incident",
             id,
-            f"Soft delete incident: {old_data}"
+            f"Soft delete incident: {old_data['detail']}"
         )
-            
+
         conn.commit()
 
-        flash("Incident successfully soft deleted", "warning")
+        flash("Incident successfully deleted", "warning")
 
     except Exception as e:
         print("ERROR SOFT DELETE INCIDENT:", e)
@@ -480,7 +525,6 @@ def incident_delete(id):
             conn.close()
 
     return redirect("/incidents")
-
 
 # =========================
 # RESTORE (SUPERADMIN ONLY)
@@ -499,7 +543,7 @@ def incident_restore(id):
             return "Forbidden", 403
 
         old_data = conn.execute("""
-            SELECT is_deleted
+            SELECT is_deleted, detail
             FROM incidents
             WHERE id = ?
         """, (id,)).fetchone()
@@ -533,7 +577,7 @@ def incident_restore(id):
         if conn:
             conn.close()
 
-    return redirect("/incidents")
+    return redirect("/incidents/" + str(id))
 
 
 # =========================
@@ -553,7 +597,7 @@ def incident_delete_permanent(id):
             return "Forbidden", 403
         
         old_data = conn.execute("""
-            SELECT is_deleted
+            SELECT is_deleted, detail
             FROM incidents
             WHERE id = ?
         """, (id,)).fetchone()
@@ -586,3 +630,75 @@ def incident_delete_permanent(id):
             conn.close()
 
     return redirect("/incidents")
+
+def export_incidents_csv():
+    conn = get_db_connection()
+
+    rows = conn.execute("""
+        SELECT 
+            i.id,
+            i.severity_level,
+            i.status,
+            i.detail,
+            i.created_at,
+            i.updated_at,
+            a.asset_code,
+            a.asset_name,
+            c.category_name,
+            u.name AS reported_by,
+            h.name AS handled_by
+        FROM incidents i
+        LEFT JOIN assets a ON i.asset_id = a.id
+        LEFT JOIN incident_categories c ON i.incident_category_id = c.id
+        LEFT JOIN users u ON i.user_id = u.id
+        LEFT JOIN users h ON i.handled_by = h.id
+        WHERE i.is_deleted = 0
+        ORDER BY i.created_at DESC
+    """).fetchall()
+
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # HEADER
+    writer.writerow([
+        "ID",
+        "Severity",
+        "Status",
+        "Detail",
+        "Created At",
+        "Updated At",
+        "Asset Code",
+        "Asset Name",
+        "Category",
+        "Reported By",
+        "Handled By"
+    ])
+
+    # DATA
+    for row in rows:
+        writer.writerow([
+            row["id"],
+            row["severity_level"],
+            row["status"],
+            row["detail"],
+            row["created_at"],
+            row["updated_at"],
+            row["asset_code"],
+            row["asset_name"],
+            row["category_name"],
+            row["reported_by"],
+            row["handled_by"]
+        ])
+
+    output.seek(0)
+    filename = f"incidents_{datetime.now().strftime('%Y-%m-%d')}.csv"
+
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )

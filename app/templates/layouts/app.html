@@ -154,9 +154,11 @@
 
           <!-- MENU -->
           <ul class="menu p-4 text-base-content space-y-1">
+            {% if role == 0 or role == 1 %}
             <li>
               <a href="/dashboard">📊 Dashboard</a>
             </li>
+            {% endif %}
 
             <li>
               <a href="/incidents">⚠️ Incident Logs</a>

@@ -67,13 +67,13 @@ def dashboard():
         SELECT 
             i.id, i.created_at, 
             a.asset_name, a.asset_code, 
-            c.category_name
+            c.category_name, i.severity_level
         FROM incidents i
         LEFT JOIN assets a ON a.id = i.asset_id
         LEFT JOIN incident_categories c ON c.id = i.incident_category_id
-        WHERE i.severity_level = 'SEV-1' AND i.status != 'Resolved'
-        ORDER BY i.created_at ASC
-        LIMIT 5
+        WHERE i.severity_level IN ('SEV-1', 'SEV-2') AND i.status NOT IN ('Resolved', 'Closed')
+        ORDER BY i.severity_level ASC, i.created_at ASC
+        LIMIT 7
         """
     ).fetchall()
 
@@ -115,17 +115,47 @@ def dashboard():
     trend_data = [row['total'] for row in trend_query]
 
     # B. DONUT CHART (Rasio Kategori Insiden)
-    category_query = conn.execute(
-        """
-        SELECT c.category_name, COUNT(i.id) as total
-        FROM incidents i
-        LEFT JOIN incident_categories c ON c.id = i.incident_category_id
-        GROUP BY c.id
-        """
-    ).fetchall()
+    category_query = conn.execute("""
+    SELECT c.category_name, COUNT(i.id) as total
+    FROM incidents i
+    LEFT JOIN incident_categories c ON c.id = i.incident_category_id
+    GROUP BY c.id
+    ORDER BY total DESC
+""").fetchall()
 
-    cat_labels = [row['category_name'] for row in category_query]
-    cat_data = [row['total'] for row in category_query]
+    cat_labels = []
+    cat_data = []
+
+    others_total = 0
+
+    for idx, row in enumerate(category_query):
+        name = row["category_name"] or "Unknown"
+        total = row["total"]
+
+        if idx < 5:
+            cat_labels.append(name)
+            cat_data.append(total)
+        else:
+            others_total += total
+
+    if others_total > 0:
+        cat_labels.append("Others")
+        cat_data.append(others_total)
+    
+    rows = conn.execute("""
+    SELECT 
+        a.asset_name,
+        COUNT(i.id) AS total_incidents
+    FROM incidents i
+    JOIN assets a ON i.asset_id = a.id
+    WHERE i.is_deleted = 0
+    GROUP BY a.id
+    ORDER BY total_incidents DESC
+    LIMIT 5
+    """).fetchall()
+
+    asset_labels = [row["asset_name"] for row in rows]
+    asset_data = [row["total_incidents"] for row in rows]
 
     conn.close()
 
@@ -151,5 +181,8 @@ def dashboard():
         trend_labels=trend_labels,
         trend_data=trend_data,
         cat_labels=cat_labels,
-        cat_data=cat_data
+        cat_data=cat_data,
+        
+        asset_labels=asset_labels,
+        asset_data=asset_data
         )

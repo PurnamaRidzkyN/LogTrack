@@ -197,6 +197,20 @@
                     >
                         SEV-3
                     </option>
+                    <option
+                        value="SEV-4"
+                        {% if incident.severity_level == "SEV-4" %}
+                        selected
+                        {% endif %}
+                    > SEV-4
+                    </option>
+                    <option
+                        value="SEV-5"
+                        {% if incident.severity_level == "SEV-5" %}
+                        selected
+                        {% endif %}
+                    > SEV-5
+                    </option>
 
                 </select>
 
