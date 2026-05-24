@@ -74,7 +74,7 @@ DEBUG=true
 ### 4. Seed the database
 
 ```bash
-python seed.py fresh
+python -m app.database.seed fresh
 
 ```
 
@@ -83,6 +83,7 @@ This command:
 * creates the SQLite schema
 * inserts sample users, 15 manufacturing assets, and 15 incident categories
 * generates **90 days (3 months)** of incident data (**2–6 incidents per day**) with weighted SEV-1 to SEV-5 distribution.
+* this script does not automatically create directories; it only creates the SQLite database file if the target folder already exists
 
 ```
 
